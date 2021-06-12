@@ -5,8 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import Column, JSON, Integer, ForeignKey, Text
 from flask_migrate import Migrate
 import os
-from uuid import UUID
-from uuid import uuid4
+import uuid
 
 # Create a new Flask instance
 app = Flask(__name__)
@@ -59,7 +58,7 @@ class Response(db.Model, object):
     # all database software out there which is beyond of my skillset as of now.
     # UUID will be stored as a string again to work around SQLite lack of native UUID data type support
     # so string version of UUID is selected to maintain compatibility across database software.
-    row_id: UUID = Column(Text, primary_key=True, comment='Common ID of the response', default=str(uuid4()))
+    row_id: str = Column(Text, primary_key=True, comment='Common ID of the response')
     # An id for referring to the data, or extract the respondent ID from the response,
     # which is you know, CRAP.
     response_id: int = Column(Integer, comment='The anonymized ID of the response')
@@ -72,6 +71,7 @@ class Response(db.Model, object):
                              nullable=False)
 
     def __init__(self, response_id, year, responses):
+        self.row_id = str(uuid.uuid4())
         self.response_id = response_id
         self.year = year
         self.responses = responses

@@ -2,17 +2,35 @@ from ExampleStackOverflowRest import db, Response, Schema
 import csv
 import logging
 import time
+
+# List of todo:
+# - Functionalize code that can be placed in a function
+# - Rewrite commit logic to handle SSD
+# - Break out code that can be shared across dumper and REST to a common Python file
+# - Appropriately document internal code in Python file
+# - Put available public API on README.md (or appropriate file)
+# - Enable argument support for dumper
+# - Cut down indentations (preferably below 3 levels of indentation)
+# - Allow customization of logging verbosity
+
+# Directory path (relative to script location for the time being)
+DIR = 'stackoverflow_data'
+
 # Loggy bits
 log = logging.getLogger('__name__')
 log.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 log.addHandler(ch)
-DIR = 'stackoverflow_data'
+
+# Start timer before launching
 all_op_start_time = time.time_ns()
 total_data = 0
 dump_rate = 1000
 log.info(f'Begin processing schema data located at "{DIR}".')
+
+# Assume the directory is labelled by year
+# TODO: write in README about expected format
 for i in range(2017, 2021):
     log.info(f'Start processing StackOverflow schema data for year {str(i)}.')
     with open('/'.join([DIR, str(i), 'survey_results_schema.csv']), newline='',

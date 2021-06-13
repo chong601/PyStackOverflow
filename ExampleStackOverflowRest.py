@@ -1,9 +1,12 @@
+import dataclasses
+
 from flask import Flask, jsonify, render_template
 from flask.views import MethodView
 from flask_sqlalchemy import SQLAlchemy
 from dataclasses import dataclass
 from sqlalchemy import Column, JSON, Integer, ForeignKey, Text
 from flask_migrate import Migrate
+import collections
 import os
 import uuid
 
@@ -34,13 +37,29 @@ class Schema(db.Model, object):
                        comment='The year of the row the data represented')
     columns: dict = Column(JSON, comment='The columns represented by the year', nullable=False)
 
-    def __init__(self, year, columns):
-        self.year = year
-        self.columns = columns
+    @staticmethod
+    def map():
+        """
+        Mapper function that provides a list of mappable attributes
+
+        :return: Dictionary of mappable attributes
+        """
+        keys = {'insight_year', 'response_columns'}
 
     # Don't know if this is doable, but it would be a good debugging tool to start with ;)
     def __repr__(self):
         return f'{self.__class__.__name__}({vars(self)})'
+
+
+class OrderedClassMembers(type):
+    @classmethod
+    def __prepare__(self, name, bases):
+        return collections.OrderedDict()
+
+    def __new__(self, name, bases, classdict):
+        classdict['__ordered__'] = [key for key in classdict.keys()
+                if key not in ('__module__', '__qualname__')]
+        return type.__new__(self, name, bases, classdict)
 
 
 # Respondent database model
@@ -76,7 +95,15 @@ class Response(db.Model, object):
         self.year = year
         self.responses = responses
 
-    # Don't know if this is doable, but it would be a good debugging tool to start with ;)
+    @staticmethod
+    def map():
+        """
+        Mapper function that provides a list of mappable attributes
+
+        :return: Dictionary of mappable attributes
+        """
+        keys = {'id', 'response_id', 'response_year', 'responses'}
+
     def __repr__(self):
         return f'{self.__class__.__name__}({vars(self)})'
 

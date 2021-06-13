@@ -4,14 +4,15 @@ import logging
 import time
 
 # List of todo:
-# - Functionalize code that can be placed in a function
+# - [in progress] Functionalize code that can be placed in a function
 # - Rewrite commit logic to handle SSD
 # - Break out code that can be shared across dumper and REST to a common Python file
-# - Appropriately document internal code in Python file
+# - [in progress] Appropriately document internal code in Python file
 # - Put available public API on README.md (or appropriate file)
 # - Enable argument support for dumper
-# - Cut down indentations (preferably below 3 levels of indentation)
+# - [in progress] Cut down indentations (preferably below 3 levels of indentation)
 # - Allow customization of logging verbosity
+# - Make code sorta testable
 
 # Directory path (relative to script location for the time being)
 DIR = 'stackoverflow_data'
@@ -28,6 +29,35 @@ all_op_start_time = time.time_ns()
 total_data = 0
 dump_rate = 1000
 log.info(f'Begin processing schema data located at "{DIR}".')
+elapsed_time = 0
+
+
+def measure_time(func):
+    """
+    Measure the time taken to run.
+
+    :param func: A function that will be timed
+    :return: The wrapped function with timer
+    """
+
+    def wrapper(*args, **kwargs):
+        start_time = time.time_ns()
+        func(*args, **kwargs)
+        end_time = time.time_ns()
+        internal_elapsed_time = end_time - start_time
+        return start_time, end_time, internal_elapsed_time
+    return wrapper
+
+
+@measure_time
+def commit_data():
+    """
+    Issues a commit to the current DB session.
+    """
+    log.debug('Committing changes to the database...')
+    db.session.commit()
+    log.debug('Commit success.')
+
 
 # Assume the directory is labelled by year
 # TODO: write in README about expected format
@@ -51,13 +81,9 @@ for i in range(2017, 2021):
         log.debug(f'Adding schema object {schema}...')
         db.session.add(schema)
         log.debug('Schema object created successfully.')
-    log.debug(f'Committing data to database...')
-    db.session.commit()
-    log.debug(f'Commit data to database successful.')
+    commit_data()
     log.info(f'Schema data for year {str(i)} extracted.')
 log.info('Finished processing all schema data')
-
-previous_time = 0
 
 log.info(f'Start processing response data from {DIR}.')
 for i in range(2017, 2021):
@@ -84,31 +110,30 @@ for i in range(2017, 2021):
             log.debug('Response data saved.')
 
             if count == next_check:
-                log.debug('Committing changes to the database...')
-                start_time = time.time_ns()
-                db.session.commit()
-                end_time = time.time_ns()
-                log.debug('Commit success.')
-                previous_time = end_time - start_time
+                _, _, elapsed_time = commit_data()
                 log.info(
-                    f'Dump rate is {dump_rate}. Inserted {count} rows of data. It took {round(previous_time / 1000000000, 3)}s to commit.')
+                    f'Dump rate is {dump_rate}. Inserted {count} rows of data. It took '
+                    f'{round(elapsed_time / 1000000000, 3)}s to commit.')
                 if dump_rate < 500:
                     dump_rate = 1000
                     log.info(f'Dump rate limited to {dump_rate} rows.')
-                elif end_time - start_time > 10*(10**9):
+                elif elapsed_time > 10 * (10 ** 9):
 
                     dump_rate -= 1000 if dump_rate != 0 else 1000
                     log.info(f'Commit time took longer than 10 seconds. Decreasing dump rate to {dump_rate} rows...')
-                elif end_time - start_time < 10*(10**9):
+                elif elapsed_time < 10 * (10 ** 9):
                     dump_rate += 500
                     log.info(f'Commit time is faster than 10 seconds. Increasing dump rate to {dump_rate} rows...')
                 next_check = count + dump_rate
             count += 1
         log.info(f'Loaded {count} responses for year {str(i)}')
-        log.debug('Committing changes to the database...')
-        db.session.commit()
-        log.debug('Commit success.')
+        log.info(f'Data successfully extracted. Committing one final time...')
+        _, _, elapsed_time = commit_data()
+        log.info(
+            f'Dump rate is {dump_rate}. Inserted {count} rows of data. It took '
+            f'{round(elapsed_time / 1000000000, 3)}s to commit.')
         log.info(f'Response data for year {str(i)} completed.')
         total_data += count
 all_op_end_time = time.time_ns()
-log.info(f'Finished processing all response data. Loaded {total_data} rows in {round((all_op_end_time-all_op_start_time)/1000000000, 3)}s.')
+log.info(f'Finished processing all response data. Loaded {total_data} rows in '
+         f'{round((all_op_end_time - all_op_start_time) / 1000000000, 3)}s.')

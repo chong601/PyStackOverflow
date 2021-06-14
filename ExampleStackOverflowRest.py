@@ -1,5 +1,3 @@
-import dataclasses
-
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from dataclasses import dataclass
@@ -48,7 +46,8 @@ class Schema(db.Model, object):
 
     year: int = Column(Integer, primary_key=True, autoincrement=False,
                        comment='The year of the row the data represented')
-    response_columns: collections.OrderedDict = Column(JSON, comment='The columns represented by the year', nullable=False)
+    response_columns: collections.OrderedDict = Column(JSON, comment='The columns represented by the year',
+                                                       nullable=False)
 
     def __init__(self, year, response_columns):
         self.year = year
@@ -67,17 +66,6 @@ class Schema(db.Model, object):
     # Don't know if this is doable, but it would be a good debugging tool to start with ;)
     def __repr__(self):
         return f'{self.__class__.__name__}({vars(self)})'
-
-
-class OrderedClassMembers(type):
-    @classmethod
-    def __prepare__(self, name, bases):
-        return collections.OrderedDict()
-
-    def __new__(self, name, bases, classdict):
-        classdict['__ordered__'] = [key for key in classdict.keys()
-                if key not in ('__module__', '__qualname__')]
-        return type.__new__(self, name, bases, classdict)
 
 
 # Respondent database model
@@ -143,7 +131,8 @@ def get_response_per_page():
 def get_response_by_year_per_page(year):
     page_number = request.args.get('page', 1, type=int)
     size_per_page = request.args.get('size', MAX_RESULTS_PER_PAGE, type=int)
-    result = Response.query.filter_by(response_year=year).paginate(page=page_number, per_page=size_per_page, error_out=False).items
+    result = Response.query.filter_by(response_year=year).paginate(page=page_number, per_page=size_per_page,
+                                                                   error_out=False).items
     return (jsonify({'error': 'Database is empty'}), 404) if len(result) == 0 else jsonify(result)
 
 
@@ -152,7 +141,7 @@ def get_response_by_response_id(response_id):
     # response_id = request.args.get('response_id', type=str)
     result = Response.query.filter_by(response_id=response_id).all()
     if len(result) > 1:
-        result.append({'Warning': 'More than one response detected!'})
+        result.append({'warning': 'More than one response detected. Your database may be inconsistent!'})
     return (jsonify({'error': f'Response ID {response_id} not found.'}), 404) \
         if len(result) != 1 else jsonify(result)
 

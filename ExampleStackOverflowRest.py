@@ -20,6 +20,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.
 # Fuck this took fucking forever to figure out.
 # This setting is completely cosmetic, but used because most API put keys on top
 app.config['JSON_SORT_KEYS'] = False
+# Inform Flask-SQLAlchemy to disable modification tracking
+# We do not rely on events so it's probably safe to disable it.
+# This shouldn't cause issues, but do raise a bug issue if weird things occur in production!
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Database
 db = SQLAlchemy(app)

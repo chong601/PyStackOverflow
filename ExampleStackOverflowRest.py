@@ -10,8 +10,12 @@ import collections
 import os
 import uuid
 
+# Results per page
+MAX_RESULTS_PER_PAGE = 100
+
 # Create a new Flask instance
 app = Flask(__name__)
+# Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.db'
 # Disable JSON key ordering.
 # Fuck this took fucking forever to figure out.
@@ -24,8 +28,6 @@ db.init_app(app)
 
 migrate = Migrate(app, db)
 migrate.init_app(app, db)
-
-MAX_RESULTS_PER_PAGE = 100
 
 
 # Schema database model
@@ -40,9 +42,10 @@ class Schema(db.Model, object):
     Schema database object that represents the 'stackoverflow_schema table in database
     """
     __tablename__ = 'stackoverflow_schema'
+
     year: int = Column(Integer, primary_key=True, autoincrement=False,
                        comment='The year of the row the data represented')
-    response_columns: dict = Column(JSON, comment='The columns represented by the year', nullable=False)
+    response_columns: collections.OrderedDict = Column(JSON, comment='The columns represented by the year', nullable=False)
 
     def __init__(self, year, response_columns):
         self.year = year
@@ -158,7 +161,6 @@ def get_response_by_year_respondent_id(year, respondent_id):
     result = Response.query.filter_by(response_year=year, respondent_id=respondent_id).all()
     return (jsonify({'error': f'Response data for respondent ID {respondent_id} for year {year} is not found.'}), 404) \
         if len(result) != 1 else jsonify(result)
-
 
 
 # Class to provide REST interface for consumption

@@ -1,7 +1,6 @@
 import dataclasses
 
 from flask import Flask, jsonify, request
-from flask.views import MethodView
 from flask_sqlalchemy import SQLAlchemy
 from dataclasses import dataclass
 from sqlalchemy import Column, JSON, Integer, ForeignKey, Text
@@ -162,31 +161,6 @@ def get_response_by_year_respondent_id(year, respondent_id):
     return (jsonify({'error': f'Response data for respondent ID {respondent_id} for year {year} is not found.'}), 404) \
         if len(result) != 1 else jsonify(result)
 
-
-# Class to provide REST interface for consumption
-# class RespondentAnswers(MethodView):
-#
-#     # TODO: separate get request to respective routes
-#     # TODO: pagination
-#     # TODO: ratelimit
-#     def get(self, response_year=None, response_id=None, page=1):
-#         if response_year is None and response_id is None:
-#             return jsonify(Response.query.paginate(page=page, per_page=MAX_RESULTS_PER_PAGE, error_out=False).items)
-#         elif response_year is not None and response_id is None:
-#             return jsonify(Response.query.filter_by(response_year=response_year).paginate(page=page, per_page=MAX_RESULTS_PER_PAGE, error_out=False).items)
-#         elif response_year is not None and response_id is not None:
-#             return jsonify(
-#                 Response.query.filter_by(response_year=response_year, response_id=response_id).first_or_404())
-#         return jsonify({'error': 'Invalid request'}), 400
-#
-#
-# # Requires passing in JSON data
-# app.add_url_rule('/responses/<int:page>', methods=['GET'], view_func=RespondentAnswers.as_view('users'))
-# # Only require the ID for the operation
-# app.add_url_rule('/responses/<int:response_year>/<int:page>', methods=['GET'],
-#                  view_func=RespondentAnswers.as_view('users_year'))
-# app.add_url_rule('/response/<int:response_year>/<int:response_id>', methods=['GET'],
-#                  view_func=RespondentAnswers.as_view('users_year_id'))
 
 if __name__ == '__main__':
     app.run(use_reloader=False)

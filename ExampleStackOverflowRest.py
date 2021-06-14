@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from dataclasses import dataclass
 from sqlalchemy import Column, JSON, Integer, ForeignKey, Text
 from flask_migrate import Migrate
-import collections
 import os
 import uuid
 
@@ -46,7 +45,7 @@ class Schema(db.Model, object):
 
     year: int = Column(Integer, primary_key=True, autoincrement=False,
                        comment='The year of the row the data represented')
-    response_columns: collections.OrderedDict = Column(JSON, comment='The columns represented by the year',
+    response_columns: dict = Column(JSON, comment='The columns represented by the year',
                                                        nullable=False)
 
     def __init__(self, year, response_columns):

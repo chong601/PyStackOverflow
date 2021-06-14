@@ -13,6 +13,11 @@ import uuid
 # Create a new Flask instance
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.db'
+# Disable JSON key ordering.
+# Fuck this took fucking forever to figure out.
+# This setting is completely cosmetic, but used because most API put keys on top
+app.config['JSON_SORT_KEYS'] = False
+
 # Database
 db = SQLAlchemy(app)
 db.init_app(app)

@@ -118,7 +118,20 @@ class Response(db.Model):
         return f'{self.__class__.__name__}({vars(self)})'
 
 
-# TODO: get rid of MethodView (not suitable for this use case as we only do GET requests
+@app.route('/schemas')
+def get_schema():
+    result = Schema.query.all()
+    return (jsonify({'error': 'No schema found.'}), 404) if len(result) == 0 else jsonify(result)
+
+
+@app.route('/schema/<int:year>')
+def get_schema_by_year(year):
+    result = Schema.query.filter_by(year=year).all()
+    if len(result) > 1:
+        result.append({'warning': 'Multiple results exist. Your database may be inconsistent!'})
+    return (jsonify({'error': f'Schema for year {year} not found.'}), 404) if len(result) == 0 else jsonify(result)
+
+
 @app.route('/responses')
 def get_response_per_page():
     page_number = request.args.get('page', 1, type=int)

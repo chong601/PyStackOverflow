@@ -1,42 +1,64 @@
 # Naive implementation of LFU cache by The Internet:tm: and my puny brain.
 # Open for a better implementation by opening an issue and put `[LFU cache]` on the topic/issue name
-from collections import OrderedDict
+from collections import deque
 import datetime
 
 
 class LFUCache(object):
-
-    def __init__(self, size=1024, lifetime=0):
+    """
+    Class that implement LFU algorithm.
+    Based on Deque data structure for fast operations and ordering reasons.
+    """
+    # TODO: Make LFUCache **subclass** of Deque as this class implementation **will**
+    # be based on Deque at some point.
+    def __init__(self, size=1024):
         """
         Create a new LFUCache instance for caching
 
         :param size: Size of the cache. Defaults to 1024 entries.
-        :param lifetime: Optional. Lifetime of the entry. Converts this LFU cache implementation into a hybrid
-        LFU/LRU cache implementation.
         """
-        self.cache = {}
+        # Deque because
+        # - I learned that from computer science class (unfortunately)
+        # - you can left append it and not having to do those awful shifting dances
+        # - you can pop any direction you want
+        # - tried and tested (have you googled Deque?)
+        # - IT HAS ROTATE FUNCTION WTF.
+        # - it's in Python stdlib so why reimplementing it from scratch?
+        self.cache = deque({})
+        # dict because
+        # - it's the next best thing to use as an index (which LRU cache depends on)
+        # - key=value support, which is **awesome**
+        # - included in Python stdlib
+        # - work around limitations with object searching (require searching for attribute)
+        # Index is **NEVER** used for data fetching/delete, they're just to work around a few
+        # limitations
+        self.index = {}
+        # Set the upper element size limit of cache
         self.size = size
-        self.lifetime = lifetime
-        self._enable_lru = True if self.lifetime > 0 else False
 
-    def _get_cache_template(self):
+    def _get_cache_metadata_template(self):
         """
         Base template for cache metadata
 
         :return: Template cache data
         """
         base_dict = {'data': None, 'hit_count': 0}
-        if self._enable_lru:
-            base_dict.update({'expire': self._get_new_expiry()})
         return base_dict
 
-    def _get_new_expiry(self):
-        """
-        Returns new expiry time based on current time
+    def _get_cache_index_template(self):
+        base_index = {'name': None}
+        return base_index
 
-        :return: `datetime` object containing updated time
-        """
-        return datetime.datetime.now() + datetime.timedelta(seconds=self.lifetime)
+    def _get_index_by_name(self, name):
+        # Hinty hint the cache_entry as dict as every entry in cache is a dict
+        cache_entry: dict
+        # This might sounds awfully weird, but it is how it is.
+        # Deque index only matches the whole object, irrespective of the contents.
+        # So do a classic O(n) traversing (what's performance?) and check the name attribute,
+        # get the whole dict if exists, __then__ get the actual index
+        for cache_entry in self.cache:
+            if cache_entry.get('name') == name:
+                return self.cache.index(cache_entry)
 
     def insert(self, name, data):
         """
@@ -46,22 +68,40 @@ class LFUCache(object):
         :param data: Data that the key represents.
         :return: New data containing key and metadata
         """
-        new_data = None
+        new_cache_object = self._get_cache_metadata_template()
+        new_cache_index = self._get_cache_index_template()
         if name not in self.cache:
-            new_data = self._get_cache_template()
-            new_data['data'] = data
-            self.cache.update({name, new_data})
-        return new_data
+            new_cache_object = self._get_cache_metadata_template()
+            new_cache_object.data = data
+            self.cache.appendleft(new_cache_object)
+            new_cache_index.update({'data': new_cache_object})
+            return new_cache_object.data
+        elif name in self.cache:
+            # Call update function instead
+            self.update(name, data)
+        return
 
-    def check(self, name):
+    def update(self, name, data):
+        # Treat as update.
+        updated_cache_index = self.index.get(name)
+        updated_cache_object = self.cache.get(name)
+        self.cache.remove(self.index.get(name).get('data'))
+        updated_cache_object.name = name
+        updated_cache_object.data = data
+        self.cache.appendleft(updated_cache_object)
+        updated_cache_index.update({'data': updated_cache_object})
+        self.index.update({name: updated_cache_index})
+
+
+    def get(self, name):
+        pass
+
+    def check(self, name, data):
         if name in self.cache:
-            expiry = self.cache[name].get('expiry')
-            if datetime.datetime.now() <= expiry:
-                self.cache[name].update({'expiry': self._get_new_expiry()})
-                return self.cache[name]['data']
-            else:
-                self.delete(name)
-        return None
+            return True
+        return False
 
-    def delete(self, name):
-        self.cache.pop(name)
+    def prune(self):
+        while len(self.cache) > self.size:
+            self.cache.pop()
+

@@ -7,6 +7,7 @@ class LFUCache(object):
     """
     Class that implement LFU algorithm.
     Based on Deque data structure for fast operations and ordering reasons.
+    WARNING: THIS CACHE IS NOT THREAD SAFE.
     """
     # TODO: Make LFUCache **subclass** of Deque as this class implementation **will**
     # be based on Deque at some point.
@@ -41,7 +42,7 @@ class LFUCache(object):
 
         :return: Template cache data
         """
-        base_dict = {'data': None, 'hit_count': 0}
+        base_dict = {'name': None, 'data': None, 'hit_count': 0}
         return base_dict
 
     def _get_cache_index_template(self):

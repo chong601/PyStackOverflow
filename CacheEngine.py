@@ -59,48 +59,62 @@ class LFUCache(object):
             if cache_entry.get('name') == name:
                 return self.cache.index(cache_entry)
 
+    def _get_data_by_name(self, name):
+        for cache_entry in self.cache:
+            if cache_entry.get('name') == name:
+                return cache_entry
+
     def insert(self, name, data):
         """
         Insert new data.
 
         :param name: Name of the key
         :param data: Data that the key represents.
-        :return: New data containing key and metadata
+        :return: Inserted data
         """
         new_cache_object = self._get_cache_metadata_template()
         new_cache_index = self._get_cache_index_template()
-        if name not in self.cache:
-            new_cache_object = self._get_cache_metadata_template()
-            new_cache_object.data = data
+        if name not in self.index:
+            new_cache_object.update({'name': name})
+            new_cache_object.update({'data': data})
             self.cache.appendleft(new_cache_object)
             new_cache_index.update({'name': name})
             self.index.append(name)
         elif name in self.index:
             # Call update function instead
             self.update(name, data)
-        return
+        self.prune()
+        return data
 
     def update(self, name, data):
-        # Treat as update.
-        updated_cache_index = self.index.get(name)
-        updated_cache_object = self.cache.get(name)
-        self.cache.remove(self.index.get(name).get('data'))
-        updated_cache_object.name = name
-        updated_cache_object.data = data
+        if not self.check(name):
+            return None
+        updated_cache_object = self._get_data_by_name(name)
+        self.cache.remove(updated_cache_object)
+        updated_cache_object.update({'data': data})
         self.cache.appendleft(updated_cache_object)
-        updated_cache_index.update({'data': updated_cache_object})
-        self.index.update({name: updated_cache_index})
-
+        return data
 
     def get(self, name):
-        pass
+        if not self.check(name):
+            return None
+        dict_data = self._get_data_by_name(name)
+        self.cache.remove(dict_data)
+        dict_data.update({'hit_count': dict_data.get('hit_count')+1})
+        self.cache.appendleft(dict_data)
+        return dict_data.get('data')
 
-    def check(self, name, data):
-        if name in self.cache:
+    def check(self, name):
+        if name in self.index:
             return True
         return False
 
+    def get_stats(self):
+        stats = [{entry['name']: entry['hit_count']} for entry in self.cache]
+        return stats
+
     def prune(self):
         while len(self.cache) > self.size:
-            self.cache.pop()
+            data = self.cache.pop()
+            self.index.remove(data['name'])
 

@@ -1,7 +1,6 @@
 # Naive implementation of LFU cache by The Internet:tm: and my puny brain.
 # Open for a better implementation by opening an issue and put `[LFU cache]` on the topic/issue name
 from collections import deque
-import datetime
 
 
 class LFUCache(object):

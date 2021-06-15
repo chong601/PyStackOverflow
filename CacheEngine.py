@@ -45,10 +45,6 @@ class LFUCache(object):
         base_dict = {'name': None, 'data': None, 'hit_count': 0}
         return base_dict
 
-    def _get_cache_index_template(self):
-        base_index = {'name': None}
-        return base_index
-
     def _get_index_by_name(self, name):
         # Hinty hint the cache_entry as dict as every entry in cache is a dict
         cache_entry: dict
@@ -74,12 +70,10 @@ class LFUCache(object):
         :return: Inserted data
         """
         new_cache_object = self._get_cache_metadata_template()
-        new_cache_index = self._get_cache_index_template()
         if name not in self.index:
             new_cache_object.update({'name': name})
             new_cache_object.update({'data': data})
             self.cache.appendleft(new_cache_object)
-            new_cache_index.update({'name': name})
             self.index.append(name)
         elif name in self.index:
             # Call update function instead
@@ -118,4 +112,3 @@ class LFUCache(object):
         while len(self.cache) > self.size:
             data = self.cache.pop()
             self.index.remove(data['name'])
-

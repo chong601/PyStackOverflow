@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from dataclasses import dataclass
-from sqlalchemy import Column, JSON, Integer, ForeignKey, Text
+from sqlalchemy import Column, JSON, Integer, ForeignKey, Text, Index
 from flask_migrate import Migrate
 import os
 import uuid
@@ -12,7 +12,7 @@ MAX_RESULTS_PER_PAGE = 100
 # Create a new Flask instance
 app = Flask(__name__)
 # Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://chong601:chong601@10.102.7.97/pystackoverflow'
 # Disable JSON key ordering.
 # Fuck this took fucking forever to figure out.
 # This setting is completely cosmetic, but used because most API put keys on top
@@ -115,6 +115,10 @@ class Response(db.Model):
 
     def __repr__(self):
         return f'{self.__class__.__name__}({vars(self)})'
+
+
+db.Index('idx_response_identifier', Response.response_id, Response.respondent_id, Response.response_year)
+db.Index('idx_response_year_respondent', Response.respondent_id, Response.response_year)
 
 
 @app.route('/schemas')

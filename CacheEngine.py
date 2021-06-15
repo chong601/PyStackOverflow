@@ -31,7 +31,7 @@ class LFUCache(object):
         # - work around limitations with object searching (require searching for attribute)
         # Index is **NEVER** used for data fetching/delete, they're just to work around a few
         # limitations
-        self.index = {}
+        self.index = []
         # Set the upper element size limit of cache
         self.size = size
 
@@ -73,9 +73,9 @@ class LFUCache(object):
             new_cache_object = self._get_cache_metadata_template()
             new_cache_object.data = data
             self.cache.appendleft(new_cache_object)
-            new_cache_index.update({'data': new_cache_object})
-            return new_cache_object.data
-        elif name in self.cache:
+            new_cache_index.update({'name': name})
+            self.index.append(name)
+        elif name in self.index:
             # Call update function instead
             self.update(name, data)
         return

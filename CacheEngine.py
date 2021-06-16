@@ -35,6 +35,9 @@ class LFUCache(object):
         self.index = []
         # Set the upper element size limit of cache
         self.size = size
+        self.hit_count = 0
+        self.miss_count = 0
+        self.evict_count = 0
 
     def _get_cache_metadata_template(self):
         """
@@ -78,6 +81,7 @@ class LFUCache(object):
         elif name in self.index:
             # Call update function instead
             self.update(name, data)
+        self.miss_count += 1
         self.prune()
         return data
 
@@ -97,6 +101,7 @@ class LFUCache(object):
         self.cache.remove(dict_data)
         dict_data.update({'hit_count': dict_data.get('hit_count')+1})
         self.cache.appendleft(dict_data)
+        self.hit_count += 1
         return dict_data.get('data')
 
     def check(self, name):
@@ -105,10 +110,13 @@ class LFUCache(object):
         return False
 
     def get_stats(self):
-        stats = [{entry['name']: entry['hit_count']} for entry in self.cache]
+        stats = {'hits': self.hit_count, 'misses': self.miss_count, 'evicted': self.evict_count}
+
+        stats.update({'cache_entry': [{entry['name']: entry['hit_count']} for entry in self.cache]})
         return stats
 
     def prune(self):
         while len(self.cache) > self.size:
             data = self.cache.pop()
             self.index.remove(data['name'])
+            self.evict_count += 1

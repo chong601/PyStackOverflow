@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from dataclasses import dataclass
 from sqlalchemy import Column, JSON, Integer, ForeignKey, Text, Index
 from flask_migrate import Migrate
+from CacheEngine import LFUCache
+import CacheDBWrapper
 import os
 import uuid
 
@@ -29,6 +31,7 @@ db.init_app(app)
 migrate = Migrate(app, db)
 migrate.init_app(app, db)
 
+db_cache = LFUCache(size=128)
 
 # Schema database model
 # Preferably, this would be based on the schema file provided by StackOverflow,
@@ -139,7 +142,7 @@ def get_schema_by_year(year):
 def get_response_per_page():
     page_number = request.args.get('page', 1, type=int)
     size_per_page = request.args.get('size', MAX_RESULTS_PER_PAGE, type=int)
-    result = Response.query.paginate(page=page_number, per_page=size_per_page, error_out=False).items
+    result = CacheDBWrapper.get_responses_by_page(request.full_path, page_number, size_per_page)
     return (jsonify({'error': 'Database is empty'}), 404) if len(result) == 0 else jsonify(result)
 
 
@@ -147,15 +150,14 @@ def get_response_per_page():
 def get_response_by_year_per_page(year):
     page_number = request.args.get('page', 1, type=int)
     size_per_page = request.args.get('size', MAX_RESULTS_PER_PAGE, type=int)
-    result = Response.query.filter_by(response_year=year).paginate(page=page_number, per_page=size_per_page,
-                                                                   error_out=False).items
+    result = CacheDBWrapper.get_responses_by_year_per_page(request.full_path, year, page_number, size_per_page)
     return (jsonify({'error': 'Database is empty'}), 404) if len(result) == 0 else jsonify(result)
 
 
 @app.route('/response/<response_id>')
 def get_response_by_response_id(response_id):
     # response_id = request.args.get('response_id', type=str)
-    result = Response.query.filter_by(response_id=response_id).all()
+    result = CacheDBWrapper.get_response_by_response_id(request.full_path, response_id)
     if len(result) > 1:
         result.append({'warning': 'More than one response detected. Your database may be inconsistent!'})
     return (jsonify({'error': f'Response ID {response_id} not found.'}), 404) \
@@ -166,9 +168,14 @@ def get_response_by_response_id(response_id):
 def get_response_by_year_respondent_id(year, respondent_id):
     # year = request.args.get('year', type=int)
     # respondent_id = request.args.get('respondent_id', type=int)
-    result = Response.query.filter_by(response_year=year, respondent_id=respondent_id).all()
+    result = CacheDBWrapper.get_response_by_year_respondent_id(request, year, respondent_id)
     return (jsonify({'error': f'Response data for respondent ID {respondent_id} for year {year} is not found.'}), 404) \
         if len(result) != 1 else jsonify(result)
+
+
+@app.route('/cache/stats')
+def get_cache_stats():
+    return jsonify(CacheDBWrapper.get_stats())
 
 
 if __name__ == '__main__':

@@ -31,6 +31,7 @@ db.init_app(app)
 migrate = Migrate(app, db)
 migrate.init_app(app, db)
 
+# This is a meme addition. DO NOT TRUST THIS CACHE TO BE ACTUALLY USABLE
 db_cache = LFUCache(size=128)
 
 # Schema database model
